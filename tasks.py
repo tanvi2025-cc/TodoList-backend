@@ -16,12 +16,15 @@ engine = create_engine(
     'sqlite:////Volumes/Others/repos/todolist/users.db', echo=True)
 Session = sessionmaker(bind=engine)
 session = Session()
-'''
-Subclass of Request Handler
-Handling User request for regster
-'''
+
+
 class TasksHandler(tornado.web.RequestHandler):
     # Create a task
+    '''
+    Subclass of Request Handler
+    Handling User request for register
+    '''
+    @tornado.web.authenticated
     def post(self):
         taskname = self.get_argument('tasks_name')
         deadline = self.get_argument('tasks_deadline')
@@ -34,25 +37,54 @@ class TasksHandler(tornado.web.RequestHandler):
         session.add(task)
         session.commit()
         response = {
-            'taskname': taskname,
-            'deadline': deadline
+            'taskname': task.tasks_name,
+            'deadline': str(task.tasks_deadline)
         }
         self.write(response)
 
 # Retrieve all tasks
 
-    def get(self):
-        tasks = session.query(Tasks).all()
-        response = {
-            'tasks': 'Got it'
-        }
-        print(tasks)
-        self.write(response)
+# Filter tasks by id
+    @tornado.web.authenticated
+    def get(self, tasks_id=None):
+        print('>>>>', tasks_id)
+        if tasks_id:
+            task = session.query(Tasks).filter(
+                Tasks.tasks_id == tasks_id).first()
+            print(task)
+            self.finish(str(task.as_dict()))
+        self.finish("Error")
+
+    # def get(self):
+    #     #task_date = self.get_arguments('tasks_deadline')
+    #    # tasks = session.query(Tasks).all().filter(Tasks.tasks_deadline==task_date)
+    #     task = session.query(Tasks).all()
+    #     response = {
+    #         'tasks': 'Got it'
+    #     }
+    #     print(task)
+    #     self.finish(response)
 
 # Delete all tasks
+    #def delete(self):
+        #tasks = session.query(Tasks).all()
+        #session.delete(tasks)
+        #session.commit()
+        #print(tasks)
+        #self.write(response)
 
-    def delete(self):
-        tasks = session.query(Tasks).all()
-        tasks.delete()
-        self.write(response)
 
+
+# Delete tasks by id
+    @tornado.web.authenticated
+    def delete(self, tasks_id):
+        print('>>>>', tasks_id)
+        if tasks_id:
+            task = session.query(Tasks).filter(
+                Tasks.tasks_id == tasks_id).first()
+            print(task)
+            session.delete(task)
+            session.commit()
+            print(task)
+            self.finish(task.as_dict())
+        self.finish("Error")
