@@ -51,7 +51,7 @@ class TasksHandler(tornado.web.RequestHandler):
         print('>>>>', tasks_id)
         if tasks_id:
             task = session.query(Tasks).filter(
-                Tasks.tasks_id == tasks_id).first()
+                Tasks.id == tasks_id).first()
             print(task)
             self.finish(str(task.as_dict()))
         else:
@@ -63,7 +63,7 @@ class TasksHandler(tornado.web.RequestHandler):
         print('>>>>', tasks_id)
         if tasks_id:
             task = session.query(Tasks).filter(
-                Tasks.tasks_id == tasks_id).first()
+                Tasks.id == tasks_id).first()
             print(task)
             session.delete(task)
             session.commit()
