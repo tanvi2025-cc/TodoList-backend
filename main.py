@@ -17,10 +17,10 @@ if __name__ == "__main__":
                   (r'/tasks', TasksHandler),
                   (r'/tasks/([-0-9]+)', TasksHandler),
                   (r'/login', LoginHandler),
-                  (r'/TaskList', ListTaskHandler)
+                  (r'/tasks/list', ListTaskHandler)
                   ]
     )
 
-    portNumber = str(8000)
-    app.listen(portNumber)
+    PORT_NUMBER '8000'
+    app.listen(PORT_NUMBER)
     tornado.ioloop.IOLoop.instance().start()

@@ -23,7 +23,7 @@ class UserHandler(DbConnection, tornado.web.RequestHandler):
         if not email:
             self.set_status(400)
             self.finish(dict(error=True, message="Email is missing"))
-        if re.match("[^@]+@[^@]+\.[^@]+", email) != None:
+        if re.match("^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$", email) != None:
             return email
         else:
             self.set_status(400)
@@ -38,7 +38,7 @@ class UserHandler(DbConnection, tornado.web.RequestHandler):
             return username
         else:
             self.set_status(400)
-            self.finish(dict(error=True, message="Not a valid username"))
+            self.finish(dict(error=True, message="Not a valid username. Minimum length allowed is 3"))
 
     def validate_hash_password(self, password):
         if not password:
@@ -51,7 +51,7 @@ class UserHandler(DbConnection, tornado.web.RequestHandler):
             return hashed_password
         else:
             self.set_status(400)
-            self.finish(dict(error=True, message="Not a valid password"))
+            self.finish(dict(error=True, message="Not a valid password. It should be atleast of 8 characters"))
 
     def post(self):
         '''
@@ -62,14 +62,13 @@ class UserHandler(DbConnection, tornado.web.RequestHandler):
         emailId = self.validate_email(
             self.get_body_argument('email_address', None))
         password = self.validate_hash_password(
-            self.get_body_argument('password'))
+            self.get_body_argument('password',None))
 
         user = User(user_name=username, email_address=emailId,
                     password=password)
         self.session.add(user)
         self.session.commit()
-        response = dict({'username': user.user_name,
-                         'email': user.email_address, 'password': user.password})
+        response = dict('username'=user.user_name,'email':user.email_address,'password':user.password)
         self.write(response)
 
     def get(self, user_id):
@@ -81,7 +80,7 @@ class UserHandler(DbConnection, tornado.web.RequestHandler):
             user = self.session.query(User).filter(User.id == user_id).first()
 
             if not user:
-                self.set_status(400)
+                self.set_status(404)
                 self.finish(dict(message="User not found"))
             self.finish(user.as_dict())
         else:

@@ -41,9 +41,9 @@ class LoginHandler(DbConnection,tornado.web.RequestHandler):
         '''
         Post method to submit credentials for authentication
         '''
-        user_name = self.get_body_argument('user_name')
+        user_name = self.get_body_argument('user_name','tanvi@gmail.com')
         password = UserHandler.validate_hash_password(
-            self, self.get_body_argument('password'))
+            self, self.get_body_argument('password','tanvi1234'))
         user = self.session.query(User).filter(
             User.user_name == user_name, User.password == password).first()
         user = user.as_dict()
@@ -53,7 +53,8 @@ class LoginHandler(DbConnection,tornado.web.RequestHandler):
             response = {'token': str(self.encoded)}
             self.finish(response)
         else:
-            self.finish('Error')
+            self.set_status(404)
+            self.finish(dict(error=True,message="User not found"))
 
 
 def validate(method):

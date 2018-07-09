@@ -45,7 +45,7 @@ class TasksHandler(DbConnection, tornado.web.RequestHandler):
         taskname = self.validate_taskname(
             self.get_body_argument('tasks_name', None))
         deadline = self.validate_deadline(
-            self.get_body_argument('tasks_deadline'))
+            self.get_body_argument('tasks_deadline',None))
 
         task = Tasks(tasks_name=taskname,
                      tasks_deadline=datetime.strptime(deadline, '%Y-%m-%d'))
@@ -90,12 +90,14 @@ class TasksHandler(DbConnection, tornado.web.RequestHandler):
                 Tasks.id == tasks_id).first()
             if not task:
                 self.set_status(404)
-                self.finish(dict(error=True, message="Id is not valid"))
+                self.finish(dict(error=True, message="Object not found"))
 
             self.session.delete(task)
             self.session.commit()
             self.finish(dict(error=False, message='Deleted'))
-        self.finish("Error")
+        else:
+            self.set_status(400)
+            self.finish(dict(error=True,message="Invalid Id"))
 
 
 class ListTaskHandler(DbConnection, tornado.web.RequestHandler):
@@ -122,4 +124,4 @@ class ListTaskHandler(DbConnection, tornado.web.RequestHandler):
         tasks = self.session.query(Tasks).all()
         self.session.delete(tasks)
         self.session.commit()
-        self.finish(dict(status="Tasks not found"))
+        self.finish(dict(error=False,status="Deleted Successfully"))
