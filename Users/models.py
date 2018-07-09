@@ -1,17 +1,11 @@
-import uuid
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy.dialects.postgresql import UUID
-
+from DatabaseConnect.DbConnection import DbConnection
 # Declarative base
 Base = declarative_base()
-
-#Generating session
-engine = create_engine('postgresql://root:root@localhost/tododb')
-Session = sessionmaker(bind=engine)
-session = Session()
 
 
 class User(Base):
@@ -25,14 +19,15 @@ class User(Base):
     password = Column(String(256), nullable=False)
 
     def __str__(self):
+        # String representation of objects
         return "<User(user_name='%s', email_address='%s')>" % (self.user_name, self.email_address)
 
     def __repr__(self):
         return "<User(user_name'%s', email_address='%s')>" % (self.user_name, self.email_address)
 
     def as_dict(self):
-        #Converting object to dictionary
+        # Converting object to dictionary
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
-Base.metadata.create_all(engine)
+Base.metadata.create_all(DbConnection.engine)

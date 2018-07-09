@@ -1,4 +1,3 @@
-# Importing libraries
 import tornado.web
 import tornado.ioloop
 import tornado.httpserver
@@ -6,82 +5,121 @@ import tornado.options
 from .models import Tasks
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-import json
-import status
 from datetime import datetime
 from authentication import validate
-
-#create engine
-engine = create_engine('postgresql://root:root@localhost/tododb')
-Session = sessionmaker(bind=engine)
-session = Session()
+from DatabaseConnect.DbConnection import DbConnection
 
 
-class TasksHandler(tornado.web.RequestHandler):
-    # Create a task
+class TasksHandler(DbConnection, tornado.web.RequestHandler):
     '''
-    Subclass of Request Handler
-    Handling User request for register
+    This class is Request Handler class for tasks table
+    Methods Used=('GET','POST','DELETE')
     '''
+
+    def validate_taskname(self, tasks_name):
+        # Validate tasks
+        if not tasks_name:
+            self.set_status(400)
+            self.finish(dict(error=True, message="Task name is missing"))
+        return tasks_name
+
+    def validate_deadline(self, task_deadline):
+        # Validate deadlines
+        if not task_deadline:
+            self.set_status(400)
+            self.finish(dict(error=True, message="Deadline is missing"))
+        if datetime.strptime(task_deadline, '%Y-%m-%d') < datetime.now():
+            self.set_status(400)
+            self.finish(
+                dict(error=True, message="Date has been already passed"))
+        return task_deadline
+
+    # Authenticate request
+
     @validate
     def post(self):
-        # user_name=tornado.escape.xhtml_escape(self.current_user)
-        taskname = self.get_argument('tasks_name')
-        deadline = self.get_argument('tasks_deadline')
-        print(taskname)
-        print(deadline)
-        # self.write(dict(taskname=task_name),dict(deadline=tasks_deadline))
+        '''
+        POST request method to add tasks in the database
+        '''
+
+        taskname = self.validate_taskname(
+            self.get_body_argument('tasks_name', None))
+        deadline = self.validate_deadline(
+            self.get_body_argument('tasks_deadline'))
+
         task = Tasks(tasks_name=taskname,
                      tasks_deadline=datetime.strptime(deadline, '%Y-%m-%d'))
-        print(task)
-        session.add(task)
-        session.commit()
+
+        self.session.add(task)
+        self.session.commit()
         response = dict(
+            task_id=task.id,
             taskname=task.tasks_name,
             deadline=str(task.tasks_deadline)
         )
-        self.write(response)
+        self.finish(response)
 
-# Retrieve all tasks
+    # Authenticate request
 
-# Filter tasks by id
     @validate
-    def get(self, tasks_id=None):
-        # user_name=tornado.escape.xhtml_escape(self.current_user)
-        print('>>>>', tasks_id)
+    def get(self, tasks_id):
+        '''
+        GET request method to fetch a task by id.
+        '''
         if tasks_id:
-            task = session.query(Tasks).filter(
+            task = self.session.query(Tasks).filter(
                 Tasks.id == tasks_id).first()
-            print(task)
-            self.finish(str(task.as_dict()))
-        else:
-            self.finish("Error")
+            if not task:
+                self.set_status(404)
+                self.finish(dict(error=True, message="Task not found"))
 
-# Delete tasks by id
+            task.tasks_deadline = task.tasks_deadline.isoformat()
+            self.finish(task.as_dict())
+        else:
+            self.finish(dict(error=True, message="Id is not valid"))
+
+    # Authenticate request
     @validate
     def delete(self, tasks_id):
-        print('>>>>', tasks_id)
+        '''
+        DELETE request method to delete a tasks according to it's mapped id.
+        '''
+
         if tasks_id:
-            task = session.query(Tasks).filter(
+            task = self.session.query(Tasks).filter(
                 Tasks.id == tasks_id).first()
-            print(task)
-            session.delete(task)
-            session.commit()
-            print(task)
-            self.finish(task.as_dict())
+            if not task:
+                self.set_status(404)
+                self.finish(dict(error=True, message="Id is not valid"))
+
+            self.session.delete(task)
+            self.session.commit()
+            self.finish(dict(error=False, message='Deleted'))
         self.finish("Error")
-# Lists and delete all tasks
 
 
-class ListTaskHandler(tornado.web.RequestHandler):
+class ListTaskHandler(DbConnection, tornado.web.RequestHandler):
+    '''
+    Request Handler to retrive and delete tasks list.
+    Methods Used=('GET','DELETE')
+    '''
+
+    # Authenticate request
     @validate
     def get(self):
-        tasks = session.query(Tasks).all()
+        '''
+        GET request method to fetch list of the tasks.
+        '''
+        tasks = self.session.query(Tasks).all()
         self.finish(tasks.as_dict())
 
+    # Authenticate request
     @validate
     def delete(self):
-        tasks = session.query(Tasks).all()
-        session.delete(tasks)
-        session.commit()
-        self.finish(dict(tasks='Deleted'))
+        '''
+        DELETE request method to delete the list of the tasks.
+        '''
+        tasks = self.session.query(Tasks).all()
+        self.session.delete(tasks)
+        self.session.commit()
+        self.finish(dict(status="Tasks not found"))
